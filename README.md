@@ -67,7 +67,7 @@ As regras ficam em **funções puras** (por exemplo, "esta fruta colidiu com a c
 ## Etapas
 
 - [x] **E1** — Proposta (este README)
-- [ ] **E2** — Janela + game loop a 60 FPS com `GetFrameTime()` + cesta controlável
+- [x] **E2** — Janela + game loop a 60 FPS com `GetFrameTime()` + cesta controlável
 - [ ] **E3** — Vetor de itens + colisões + pontuação
 - [ ] **E4** — Versão final + telas + apresentação
 
@@ -75,19 +75,29 @@ As regras ficam em **funções puras** (por exemplo, "esta fruta colidiu com a c
 
 ## Como compilar e rodar
 
-Pré-requisito: Raylib instalada. No Windows, usamos o instalador oficial em `C:\raylib`.
+Pré-requisito: Raylib instalada. No Windows, usamos o instalador oficial em `C:\raylib`, que já traz o `gcc` e o `make` no w64devkit.
+
+No Linux, WSL ou macOS:
 
 ```
 make
 ./jogo
 ```
 
-No Windows, o executável é `jogo.exe`.
+No Windows (PowerShell), o executável é `jogo.exe`:
+
+```
+$env:Path = "C:\raylib\w64devkit\bin;$env:Path"
+make
+.\jogo.exe
+```
+
+Para apagar o executável: `make clean`.
 
 ## Controles
 
 | Tecla | Ação |
 |---|---|
 | ← / → ou A / D | Mover a cesta |
-| ENTER | Começar / reiniciar |
+| ENTER | Começar / reiniciar (ainda não implementado, entra com as telas) |
 | ESC | Sair |
