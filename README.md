@@ -92,7 +92,9 @@ make
 .\jogo.exe
 ```
 
-Para apagar o executável: `make clean`.
+Para rodar os testes das funções puras (sem abrir janela): `make teste`.
+
+Para apagar os executáveis: `make clean`.
 
 ## Controles
 
