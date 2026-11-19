@@ -1,4 +1,4 @@
-/* Testes das regras puras do jogo (tempo e fim de partida).
+/* Testes das regras e da atualizacao da partida.
    Rodam sem abrir janela. Uso: make teste */
 
 #include <stdio.h>
@@ -60,7 +60,73 @@ static void testaIniciaJogo(void) {
     confereInt("iniciaJogo vai para a tela de inicio", j.tela, TELA_INICIO);
 }
 
+/* Monta uma partida com uma maca alinhada ao centro da cesta. */
+static Jogo partidaComMaca(float distancia) {
+    Jogo j = {0};
+    iniciaJogo(&j);
+    j.tela = TELA_JOGANDO;
+    Item maca = criaItem(j.cesta.corpo.x + j.cesta.corpo.width / 2, MACA);
+    maca.pos.y = j.cesta.corpo.y - maca.raio - distancia;
+    j.itens[0] = maca;
+    j.numItens = 1;
+    return j;
+}
+
+static void testaUltimoQuadro(void) {
+    Jogo j = partidaComMaca(1.0f); /* contato depois de 5 ms */
+    j.pontos = PONTOS_PARA_VENCER - VALOR_MACA;
+    j.tempoRestante = 0.001f;
+    atualizaJogo(&j, 0.016f);
+    confereInt("contato depois do prazo perde", j.tela, TELA_DERROTA);
+    confereInt("fruta fora do prazo nao pontua", j.pontos, PONTOS_PARA_VENCER - VALOR_MACA);
+
+    j = partidaComMaca(1.0f);
+    j.pontos = PONTOS_PARA_VENCER - VALOR_MACA;
+    j.tempoRestante = 0.006f;
+    atualizaJogo(&j, 0.016f);
+    confereInt("contato antes do prazo vence", j.tela, TELA_VITORIA);
+
+    j = partidaComMaca(VELOCIDADE_QUEDA / 128);
+    j.pontos = PONTOS_PARA_VENCER - VALOR_MACA;
+    j.tempoRestante = 1.0f / 128;
+    atualizaJogo(&j, 0.016f);
+    confereInt("primeiro toque no instante do fim perde", j.tela, TELA_DERROTA);
+}
+
+static void testaQuadroDemorado(void) {
+    Jogo j = partidaComMaca(1.0f);
+    atualizaJogo(&j, 0.4f);
+    confereInt("maca cruzando a cesta pontua", j.pontos, VALOR_MACA);
+    confereInt("maca capturada sai do vetor", j.numItens, 0);
+}
+
+static void testaGeracao(void) {
+    Jogo j = {0};
+    iniciaJogo(&j);
+    j.tela = TELA_JOGANDO;
+    atualizaJogo(&j, 2 * INTERVALO_ITENS);
+    confereInt("dois intervalos geram dois itens", j.numItens, 2);
+    if (j.numItens == 2) {
+        confereFloat("primeiro item cai por um intervalo", j.itens[0].pos.y,
+                     -RAIO_ITEM + VELOCIDADE_QUEDA * INTERVALO_ITENS);
+        confereFloat("segundo item acaba de nascer", j.itens[1].pos.y, -RAIO_ITEM);
+    }
+    iniciaJogo(&j);
+    j.tela = TELA_JOGANDO;
+    atualizaJogo(&j, INTERVALO_ITENS * 1.25f);
+    confereInt("nasce um item no meio do quadro", j.numItens, 1);
+    if (j.numItens == 1) {
+        confereFloat("item cai apenas a partir do nascimento", j.itens[0].pos.y,
+                     -RAIO_ITEM + VELOCIDADE_QUEDA * INTERVALO_ITENS / 4);
+    }
+    confereFloat("preserva a fracao ate o proximo item", j.tempoProximoItem,
+                 INTERVALO_ITENS * 0.75f);
+}
+
 int main(void) {
+    testaUltimoQuadro();
+    testaQuadroDemorado();
+    testaGeracao();
     testaVerificaResultado();
     testaDescontaTempo();
     testaIniciaJogo();

@@ -21,7 +21,7 @@ ifeq ($(OS),Windows_NT)
     CFLAGS += -I$(RAYLIB)
     LDLIBS  = -L$(RAYLIB) -lraylib -lopengl32 -lgdi32 -lwinmm
 else ifeq ($(shell uname -s),Darwin)
-    # macOS: brew install raylib
+    # macOS: brew install raylib pkgconf
     CFLAGS += $(shell pkg-config --cflags raylib)
     LDLIBS  = $(shell pkg-config --libs raylib)
 else

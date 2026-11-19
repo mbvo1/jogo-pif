@@ -1,9 +1,13 @@
+#include <math.h>
 #include "jogo.h"
 
 #define LARGURA_CESTA 100
 #define ALTURA_CESTA 25
 #define VELOCIDADE_CESTA 400.0f
 #define DISTANCIA_DO_CHAO 10
+
+/* A 128 passos/s, um item anda no maximo 1,57 pixel por passo. */
+#define PASSO_MAXIMO (1.0 / 128)
 
 #define CHANCE_BOMBA 25        /* em %, de 1 a 100 */
 #define CHANCE_MACA 45         /* em %, o que sobra e laranja */
@@ -18,8 +22,8 @@
 /* ---------- Regras puras ---------- */
 
 /* PURA: devolve o tempo que sobra, sem deixar ficar negativo */
-float descontaTempo(float tempoRestante, float dt) {
-    float novo = tempoRestante - dt;
+double descontaTempo(double tempoRestante, double dt) {
+    double novo = tempoRestante - dt;
     if (novo < 0) {
         return 0;
     }
@@ -27,9 +31,9 @@ float descontaTempo(float tempoRestante, float dt) {
 }
 
 /* PURA: decide a tela so com os tres numeros recebidos.
-   Ordem das regras: chegar aos pontos vence (mesmo que no mesmo quadro
+   Ordem das regras: chegar aos pontos vence (mesmo que no mesmo passo
    tenha perdido a ultima vida); senao, sem vidas ou sem tempo perde. */
-Tela verificaResultado(int pontos, int vidas, float tempoRestante) {
+Tela verificaResultado(int pontos, int vidas, double tempoRestante) {
     if (pontos >= PONTOS_PARA_VENCER) {
         return TELA_VITORIA;
     }
@@ -41,7 +45,7 @@ Tela verificaResultado(int pontos, int vidas, float tempoRestante) {
 
 /* ---------- Atualizacao ---------- */
 
-/* Muda o jogo recebido por ponteiro, mas nao le teclado nem sorteia:
+/* IMPURA: muda o jogo recebido por ponteiro, mas nao le teclado nem sorteia:
    sempre deixa o jogo no mesmo estado inicial, na tela de inicio. */
 void iniciaJogo(Jogo *j) {
     j->cesta.corpo.x = (LARGURA - LARGURA_CESTA) / 2.0f;
@@ -71,31 +75,58 @@ static Item sorteiaItem(void) {
     return criaItem(x, tipo);
 }
 
-/* IMPURA: muda o jogo. Quando o timer zera, nasce um item novo. */
-static void geraItemSeForHora(Jogo *j, float dt) {
-    j->tempoProximoItem = j->tempoProximoItem - dt;
-    if (j->tempoProximoItem <= 0) {
-        j->numItens = adicionaItem(j->itens, j->numItens, sorteiaItem());
-        j->tempoProximoItem = INTERVALO_ITENS;
+/* PURA: projeta o movimento sem incluir o instante final. Se arredondar
+   para float atingir ou passar da chegada, usa a coordenada anterior. */
+static float posicaoAntesDoFim(float inicio, double velocidade, double dt) {
+    double chegada = inicio + velocidade * dt;
+    float posicao = (float)chegada;
+    if ((velocidade > 0 && posicao >= chegada) ||
+        (velocidade < 0 && posicao <= chegada)) {
+        return nextafterf(posicao, inicio);
     }
+    return posicao;
 }
 
-/* IMPURA: um quadro da partida. Cada linha chama uma funcao pequena;
-   as regras de verdade ficam nas funcoes puras. */
-static void atualizaJogando(Jogo *j, float dt) {
-    Rectangle cesta;
-
-    atualizaCesta(&j->cesta, dt, LARGURA);
-    j->tempoRestante = descontaTempo(j->tempoRestante, dt);
-    geraItemSeForHora(j, dt);
-
-    cesta = j->cesta.corpo;
-    atualizaItens(j->itens, j->numItens, dt);                          /* map */
+/* IMPURA: move a cesta e os itens e aplica as capturas deste passo. */
+static void moveECaptura(Jogo *j, double dt, bool ultimoPasso) {
+    float xInicial = j->cesta.corpo.x;
+    atualizaCesta(&j->cesta, (float)dt, LARGURA);
+    Rectangle cesta = j->cesta.corpo;
+    if (ultimoPasso) {
+        /* Conta apenas o contato anterior ao apito. Projeta a cesta antes
+           de limitar na borda, pois ela pode ter chegado ali mais cedo. */
+        if (cesta.x != xInicial) {
+            double velocidade = cesta.x > xInicial ? j->cesta.velocidade : -j->cesta.velocidade;
+            cesta.x = limitaX(posicaoAntesDoFim(xInicial, velocidade, dt), cesta.width, LARGURA);
+        }
+        for (int i = 0; i < j->numItens; i++) {
+            Item *item = &j->itens[i];
+            item->pos.y = posicaoAntesDoFim(item->pos.y, item->velocidade, dt);
+        }
+    } else {
+        atualizaItens(j->itens, j->numItens, (float)dt);               /* map */
+    }
     j->pontos += somaPontosPegos(j->itens, j->numItens, cesta);        /* fold */
     j->vidas -= contaBombasPegas(j->itens, j->numItens, cesta);        /* filter+fold */
     j->numItens = removeItensMortos(j->itens, j->numItens, cesta, ALTURA); /* filter */
+}
 
-    j->tela = verificaResultado(j->pontos, j->vidas, j->tempoRestante);
+/* IMPURA: avanca ate o fim do quadro, o nascimento de um item ou o fim
+   da partida. Cada item so comeca a cair no passo seguinte ao nascimento. */
+static void atualizaJogando(Jogo *j, float dt) {
+    double falta = fmin(dt, j->tempoRestante);
+    while (falta > 0 && j->tela == TELA_JOGANDO) {
+        double passo = fmin(falta, fmin(PASSO_MAXIMO, j->tempoProximoItem));
+        moveECaptura(j, passo, passo == j->tempoRestante);
+        j->tempoRestante = descontaTempo(j->tempoRestante, passo);
+        j->tempoProximoItem -= passo;
+        falta -= passo;
+        j->tela = verificaResultado(j->pontos, j->vidas, j->tempoRestante);
+        if (j->tempoProximoItem <= 0 && j->tela == TELA_JOGANDO) {
+            j->numItens = adicionaItem(j->itens, j->numItens, sorteiaItem());
+            j->tempoProximoItem = INTERVALO_ITENS;
+        }
+    }
 }
 
 /* IMPURA: le o teclado e muda o estado conforme a tela atual */
@@ -117,7 +148,7 @@ void atualizaJogo(Jogo *j, float dt) {
 
 /* ---------- Desenho (nao altera o estado) ---------- */
 
-/* Escreve um texto centralizado na horizontal */
+/* IMPURA: desenha um texto centralizado na horizontal */
 static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) {
     int x = (LARGURA - MeasureText(texto, tamanho)) / 2;
     DrawText(texto, x, y, tamanho, cor);
@@ -144,7 +175,7 @@ static void desenhaHud(Jogo j) {
     int x = LARGURA - MARGEM_HUD - larguraVidas;
 
     DrawText(pontos, MARGEM_HUD, MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
-    textoCentralizado(TextFormat("Tempo %d", (int)j.tempoRestante),
+    textoCentralizado(TextFormat("Tempo %d", (int)ceil(j.tempoRestante)),
                       MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
     for (int i = 0; i < VIDAS_INICIAIS; i++) {
         desenhaCoracao(x, MARGEM_HUD, i < j.vidas);
@@ -152,6 +183,7 @@ static void desenhaHud(Jogo j) {
     }
 }
 
+/* IMPURA: desenha as instrucoes na janela. */
 static void desenhaTelaInicio(void) {
     textoCentralizado("Chuva de Frutas", 90, FONTE_TITULO, DARKGREEN);
     textoCentralizado("Pegue as frutas e desvie das bombas!", 170, TAMANHO_FONTE, DARKGRAY);
@@ -164,6 +196,7 @@ static void desenhaTelaInicio(void) {
     textoCentralizado("ENTER para jogar", 340, TAMANHO_FONTE, MAROON);
 }
 
+/* IMPURA: desenha o resultado da partida na janela. */
 static void desenhaTelaFim(Jogo j) {
     if (j.tela == TELA_VITORIA) {
         textoCentralizado("Voce venceu!", 120, FONTE_TITULO, DARKGREEN);
@@ -182,6 +215,7 @@ static void desenhaTelaFim(Jogo j) {
     textoCentralizado("ENTER para jogar de novo", 300, TAMANHO_FONTE, MAROON);
 }
 
+/* IMPURA: desenha os itens, a cesta e o HUD na janela. */
 static void desenhaPartida(Jogo j) {
     for (int i = 0; i < j.numItens; i++) {
         desenhaItem(j.itens[i]);

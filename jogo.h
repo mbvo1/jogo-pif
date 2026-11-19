@@ -23,14 +23,14 @@ typedef struct Jogo {
     int numItens;            /* quantos itens do vetor estao em uso */
     int pontos;
     int vidas;
-    float tempoRestante;     /* em segundos, conta para baixo */
-    float tempoProximoItem;  /* contagem regressiva ate o proximo item */
+    double tempoRestante;     /* em segundos, conta para baixo */
+    double tempoProximoItem;  /* contagem regressiva ate o proximo item */
     Tela tela;               /* qual tela esta aparecendo */
 } Jogo;
 
 /* Funcoes puras: as regras de tempo e de fim de jogo */
-float descontaTempo(float tempoRestante, float dt);
-Tela verificaResultado(int pontos, int vidas, float tempoRestante);
+double descontaTempo(double tempoRestante, double dt);
+Tela verificaResultado(int pontos, int vidas, double tempoRestante);
 
 /* Zera tudo para comecar uma partida (no inicio e no ENTER) */
 void iniciaJogo(Jogo *j);

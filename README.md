@@ -47,6 +47,8 @@ Os números do jogo ficam em `#define` no começo dos arquivos (`jogo.h`, `jogo.
 
 Pré-requisito: Raylib instalada. No Windows, usamos o instalador oficial em `C:\raylib`, que já traz o `gcc` e o `make` no w64devkit.
 
+No macOS, o Makefile usa também o `pkg-config`. Com Homebrew, instale as dependências com `brew install raylib pkgconf`.
+
 No Linux, WSL ou macOS:
 
 ```
@@ -80,7 +82,7 @@ make
 | `cesta.h` / `cesta.c` | A cesta do jogador: movimento com `dt`, limite nas bordas e leitura do teclado. |
 | `testes/teste_cesta.c` | Testes de `moveX` e `limitaX`. |
 | `testes/teste_itens.c` | Testes das funções dos itens e do vetor. |
-| `testes/teste_jogo.c` | Testes de `verificaResultado`, `descontaTempo` e `iniciaJogo`. |
+| `testes/teste_jogo.c` | Testes de resultado, tempo, início da partida, colisão em quadro longo e geração de itens. |
 | `Makefile` | Compila o jogo e os testes no Windows, Linux/WSL e macOS. |
 
 Em cada quadro o jogo faz duas coisas separadas:
@@ -88,17 +90,17 @@ Em cada quadro o jogo faz duas coisas separadas:
 1. **Atualizar** (`atualizaJogo`): muda o estado, não desenha nada.
 2. **Desenhar** (`desenhaJogo`): mostra o estado e não muda nada. Recebe o `Jogo` **por valor**, então nem consegue alterar o original.
 
-Durante a partida, `atualizaJogo` faz, nesta ordem:
+Durante a partida, `atualizaJogo` divide quadros longos em passos de até 1/128 s. Um passo termina também no instante de nascer um item ou no fim do tempo. Uma captura só vale se o contato começar antes de o relógio zerar. Em cada passo:
 
 ```
 atualizaCesta                         -> move a cesta pelo teclado
-descontaTempo                         -> tira dt do tempo restante
-geraItemSeForHora                     -> sorteia e adiciona item quando o timer zera
 atualizaItens        (map)            -> todos os itens descem
 somaPontosPegos      (fold)           -> soma os pontos das frutas pegas
 contaBombasPegas     (filter + fold)  -> tira 1 vida por bomba pega
 removeItensMortos    (filter)         -> tira do vetor os itens pegos ou fora da tela
+descontaTempo                         -> atualiza o relógio
 verificaResultado                     -> continua, vitória ou derrota
+se a partida continua e há um item previsto para este instante, ele nasce no topo
 ```
 
 ---
@@ -126,7 +128,7 @@ Bordas tratadas:
 
 ## Funções puras e testes
 
-Uma função **pura** depende só dos seus parâmetros e não muda nada fora dela: com a mesma entrada, dá sempre a mesma saída. No nosso código, cada função tem um comentário dizendo se é PURA ou IMPURA e por quê.
+Uma função **pura** depende só dos seus parâmetros e não muda nada fora dela: com a mesma entrada, dá sempre a mesma saída. Os comentários nos módulos do jogo identificam as regras puras e explicam os efeitos das funções de atualização e desenho.
 
 | Função | Arquivo | Por que é pura |
 |---|---|---|
@@ -150,7 +152,7 @@ make teste
 
 Isso compila `testes/teste_cesta.c`, `testes/teste_itens.c` e `testes/teste_jogo.c` junto com os módulos do jogo (todos os `.c` **menos** o `main.c`, porque cada teste tem o seu próprio `main`) e roda os três. Cada caso imprime `ok` ou `FALHOU`; se algum falhar, o `make` para com erro.
 
-Os testes não abrem janela. Isso só é possível porque as regras estão em funções puras: para saber se a cesta pegou uma maçã, basta montar um `Item` e um `Rectangle` e chamar `pegouItem`, sem precisar de teclado, tela ou sorte. Alguns casos testados:
+Os testes rodam sem abrir janela. Os de colisão montam um `Item` e um `Rectangle` e chamam `pegouItem`. Os de atualização avançam a partida com durações conhecidas e verificam o resultado. Para testar o nascimento dos itens, conferem a quantidade e a altura, que independem do sorteio. Alguns casos testados:
 
 - `caiItem` com `dt = 0` não mexe o item, e não altera o original.
 - `pegouItem` pega, não pega, e pega quando o círculo só encosta na borda.
