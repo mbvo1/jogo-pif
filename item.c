@@ -27,6 +27,13 @@ Item caiItem(Item it, float dt) {
     return it;
 }
 
+/* PURA: so pergunta se o circulo do item encosta no retangulo da cesta.
+   Usa a colisao pronta da Raylib, que e so calculo (nao precisa de janela).
+   Encostar na borda ja conta como pegar. */
+bool pegouItem(Item it, Rectangle cesta) {
+    return CheckCollisionCircleRec(it.pos, it.raio, cesta);
+}
+
 /* MAP: aplica caiItem em cada item do vetor.
    Nao e pura no sentido estrito porque escreve no vetor recebido,
    mas nao le teclado, nao desenha e nao usa variavel global:
@@ -45,6 +52,33 @@ int adicionaItem(Item itens[], int n, Item novo) {
     }
     itens[n] = novo;
     return n + 1;
+}
+
+/* FOLD: percorre o vetor juntando tudo em um numero so (a soma).
+   Comeca do 0 e, para cada item pego, acumula o valor dele.
+   Bomba vale 0, entao nao soma nada. Lista vazia devolve 0.
+   PURA: o vetor e const, so lemos. */
+int somaPontosPegos(const Item itens[], int n, Rectangle cesta) {
+    int soma = 0;
+    for (int i = 0; i < n; i++) {
+        if (pegouItem(itens[i], cesta)) {
+            soma = soma + itens[i].valor;
+        }
+    }
+    return soma;
+}
+
+/* FILTER + FOLD: filtra so as bombas que foram pegas
+   e dobra o resultado em uma contagem (soma 1 para cada uma).
+   PURA: o vetor e const, so lemos. */
+int contaBombasPegas(const Item itens[], int n, Rectangle cesta) {
+    int bombas = 0;
+    for (int i = 0; i < n; i++) {
+        if (itens[i].tipo == BOMBA && pegouItem(itens[i], cesta)) {
+            bombas = bombas + 1;
+        }
+    }
+    return bombas;
 }
 
 /* IMPURA (desenha na tela), mas recebe o item por valor:

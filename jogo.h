@@ -8,6 +8,9 @@
 #define LARGURA 800
 #define ALTURA 450
 
+#define VIDAS_INICIAIS 3
+#define PONTOS_PARA_VENCER 30
+
 #define INTERVALO_ITENS 0.8f   /* segundos entre um item e o proximo */
 
 /* Todo o estado do jogo fica junto nesta struct */
@@ -16,6 +19,7 @@ typedef struct Jogo {
     Item itens[MAX_ITENS];
     int numItens;            /* quantos itens do vetor estao em uso */
     int pontos;
+    int vidas;
     float tempoProximoItem;  /* contagem regressiva ate o proximo item */
 } Jogo;
 

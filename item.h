@@ -25,10 +25,13 @@ typedef struct Item {
 /* Funcoes puras: recebem por valor e so fazem calculo */
 Item criaItem(float x, TipoItem tipo);
 Item caiItem(Item it, float dt);
+bool pegouItem(Item it, Rectangle cesta);
 
 /* Funcoes sobre a colecao (vetor de itens) */
 void atualizaItens(Item itens[], int n, float dt);      /* MAP */
 int adicionaItem(Item itens[], int n, Item novo);
+int somaPontosPegos(const Item itens[], int n, Rectangle cesta);   /* FOLD */
+int contaBombasPegas(const Item itens[], int n, Rectangle cesta);  /* FILTER + FOLD */
 
 /* Desenho: mostra o item e nao altera o estado do jogo */
 void desenhaItem(Item it);

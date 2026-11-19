@@ -18,6 +18,7 @@ void iniciaJogo(Jogo *j) {
     j->cesta.velocidade = VELOCIDADE_CESTA;
     j->numItens = 0;
     j->pontos = 0;
+    j->vidas = VIDAS_INICIAIS;
     j->tempoProximoItem = INTERVALO_ITENS;
 }
 
@@ -49,13 +50,19 @@ static void geraItemSeForHora(Jogo *j, float dt) {
 void atualizaJogo(Jogo *j, float dt) {
     atualizaCesta(&j->cesta, dt, LARGURA);
     geraItemSeForHora(j, dt);
-    atualizaItens(j->itens, j->numItens, dt);           /* map */
+    atualizaItens(j->itens, j->numItens, dt);                          /* map */
+    j->pontos += somaPontosPegos(j->itens, j->numItens, j->cesta.corpo);   /* fold */
+    j->vidas -= contaBombasPegas(j->itens, j->numItens, j->cesta.corpo);   /* filter + fold */
 }
 
-/* Esboco do HUD: so os pontos sao reais por enquanto */
+/* HUD: Pontos a esquerda e Vidas a direita */
 static void desenhaHud(Jogo j) {
-    DrawText(TextFormat("Pontos %d/30", j.pontos), MARGEM_HUD, MARGEM_HUD,
-             TAMANHO_FONTE, DARKGRAY);
+    const char *pontos = TextFormat("Pontos %d/%d", j.pontos, PONTOS_PARA_VENCER);
+    DrawText(pontos, MARGEM_HUD, MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
+
+    const char *vidas = TextFormat("Vidas %d", j.vidas);
+    int xVidas = LARGURA - MeasureText(vidas, TAMANHO_FONTE) - MARGEM_HUD;
+    DrawText(vidas, xVidas, MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
 }
 
 /* IMPURA (desenha), mas recebe o jogo por valor: nao altera o estado */
