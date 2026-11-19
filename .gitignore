@@ -1,6 +1,8 @@
 # executavel gerado pelo make (Linux/WSL/macOS nao tem extensao)
 jogo
 testes/teste_cesta
+testes/teste_itens
+testes/teste_jogo
 
 # Windows
 *.exe
