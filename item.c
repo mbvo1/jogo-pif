@@ -34,6 +34,12 @@ bool pegouItem(Item it, Rectangle cesta) {
     return CheckCollisionCircleRec(it.pos, it.raio, cesta);
 }
 
+/* PURA: o item saiu quando ele INTEIRO passou da parte de baixo da tela
+   (o topo do circulo, pos.y - raio, ja esta abaixo da altura da tela). */
+bool saiuDaTela(Item it, int alturaTela) {
+    return it.pos.y - it.raio > alturaTela;
+}
+
 /* MAP: aplica caiItem em cada item do vetor.
    Nao e pura no sentido estrito porque escreve no vetor recebido,
    mas nao le teclado, nao desenha e nao usa variavel global:
@@ -79,6 +85,24 @@ int contaBombasPegas(const Item itens[], int n, Rectangle cesta) {
         }
     }
     return bombas;
+}
+
+/* FILTER: mantem so os itens "vivos" (nao pegos e ainda na tela).
+   Igual ao exemplo do slide: le com i, escreve com novoN e copia
+   para frente cada item que fica. Como i e novoN andam sempre para
+   frente, os itens que ficam continuam na mesma ordem.
+   Devolve o novo tamanho do vetor. Lista vazia devolve 0.
+   Escreve so no vetor recebido (sem teclado, desenho ou global). */
+int removeItensMortos(Item itens[], int n, Rectangle cesta, int alturaTela) {
+    int novoN = 0;
+    for (int i = 0; i < n; i++) {
+        bool vivo = !pegouItem(itens[i], cesta) && !saiuDaTela(itens[i], alturaTela);
+        if (vivo) {
+            itens[novoN] = itens[i];
+            novoN = novoN + 1;
+        }
+    }
+    return novoN;
 }
 
 /* IMPURA (desenha na tela), mas recebe o item por valor:

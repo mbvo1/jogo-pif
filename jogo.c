@@ -50,9 +50,11 @@ static void geraItemSeForHora(Jogo *j, float dt) {
 void atualizaJogo(Jogo *j, float dt) {
     atualizaCesta(&j->cesta, dt, LARGURA);
     geraItemSeForHora(j, dt);
-    atualizaItens(j->itens, j->numItens, dt);                          /* map */
-    j->pontos += somaPontosPegos(j->itens, j->numItens, j->cesta.corpo);   /* fold */
-    j->vidas -= contaBombasPegas(j->itens, j->numItens, j->cesta.corpo);   /* filter + fold */
+    atualizaItens(j->itens, j->numItens, dt);                            /* map */
+    j->pontos += somaPontosPegos(j->itens, j->numItens, j->cesta.corpo); /* fold */
+    j->vidas -= contaBombasPegas(j->itens, j->numItens, j->cesta.corpo); /* filter+fold */
+    j->numItens = removeItensMortos(j->itens, j->numItens,
+                                    j->cesta.corpo, ALTURA);             /* filter */
 }
 
 /* HUD: Pontos a esquerda e Vidas a direita */
