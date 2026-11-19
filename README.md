@@ -26,7 +26,7 @@ O jogador controla uma cesta na parte de baixo da tela. Maçãs, laranjas e bomb
 - **Pegar uma maçã:** +1 ponto. **Pegar uma laranja:** +2 pontos.
 - **Pegar uma bomba:** perde 1 vida.
 - **Deixar um item cair no chão:** ele some, sem penalidade.
-- O jogador começa com **3 vidas**.
+- O jogador começa com **3 vidas**. No canto superior direito, cada coração vermelho representa uma vida restante e cada coração cinza, uma vida perdida.
 - **Vitória:** chegar a 30 pontos antes de o tempo acabar.
 - **Derrota:** as vidas chegam a 0, ou o tempo acaba antes dos 30 pontos.
 - **Telas:** início → jogando → vitória ou derrota. ENTER começa o jogo na tela de início e reinicia nas telas finais.

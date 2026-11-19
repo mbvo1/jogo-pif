@@ -11,6 +11,9 @@
 #define TAMANHO_FONTE 20
 #define FONTE_TITULO 40
 #define MARGEM_HUD 10
+#define RAIO_CORACAO 5
+#define LARGURA_CORACAO (4 * RAIO_CORACAO)
+#define ESPACAMENTO_CORACOES 6
 
 /* ---------- Regras puras ---------- */
 
@@ -120,16 +123,33 @@ static void textoCentralizado(const char *texto, int y, int tamanho, Color cor) 
     DrawText(texto, x, y, tamanho, cor);
 }
 
-/* HUD: Pontos a esquerda, Tempo no centro e Vidas a direita */
+/* IMPURA: desenha na tela usando apenas a posicao e o estado do coracao. */
+static void desenhaCoracao(int x, int y, bool cheio) {
+    Color cor = cheio ? RED : LIGHTGRAY;
+    int meioY = y + RAIO_CORACAO;
+    Vector2 esquerda = { x, meioY };
+    Vector2 ponta = { x + LARGURA_CORACAO / 2, y + 4 * RAIO_CORACAO };
+    Vector2 direita = { x + LARGURA_CORACAO, meioY };
+
+    DrawCircle(x + RAIO_CORACAO, meioY, RAIO_CORACAO, cor);
+    DrawCircle(x + LARGURA_CORACAO - RAIO_CORACAO, meioY, RAIO_CORACAO, cor);
+    DrawTriangle(esquerda, ponta, direita, cor);
+}
+
+/* IMPURA: desenha pontos, tempo e um coracao por vida inicial. */
 static void desenhaHud(Jogo j) {
     const char *pontos = TextFormat("Pontos %d/%d", j.pontos, PONTOS_PARA_VENCER);
-    const char *vidas = TextFormat("Vidas %d", j.vidas);
-    int xVidas = LARGURA - MeasureText(vidas, TAMANHO_FONTE) - MARGEM_HUD;
+    int larguraVidas = VIDAS_INICIAIS * LARGURA_CORACAO
+                     + (VIDAS_INICIAIS - 1) * ESPACAMENTO_CORACOES;
+    int x = LARGURA - MARGEM_HUD - larguraVidas;
 
     DrawText(pontos, MARGEM_HUD, MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
     textoCentralizado(TextFormat("Tempo %d", (int)j.tempoRestante),
                       MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
-    DrawText(vidas, xVidas, MARGEM_HUD, TAMANHO_FONTE, DARKGRAY);
+    for (int i = 0; i < VIDAS_INICIAIS; i++) {
+        desenhaCoracao(x, MARGEM_HUD, i < j.vidas);
+        x += LARGURA_CORACAO + ESPACAMENTO_CORACOES;
+    }
 }
 
 static void desenhaTelaInicio(void) {

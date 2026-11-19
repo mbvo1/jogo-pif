@@ -63,6 +63,8 @@ static void testaSaiuDaTela(void) {
 }
 
 static void testaPegouItem(void) {
+    float xLateral = CESTA.x - RAIO_ITEM;
+    float yMeio = CESTA.y + CESTA.height / 2;
     /* raio 14: com o centro em y = 386 o circulo encosta no topo (400) */
     confereInt("pegouItem dentro da cesta", pegouItem(itemEm(150, 410, MACA), CESTA), 1);
     confereInt("pegouItem longe da cesta", pegouItem(itemEm(150, 100, MACA), CESTA), 0);
@@ -71,6 +73,10 @@ static void testaPegouItem(void) {
                pegouItem(itemEm(150, 386, MACA), CESTA), 1);
     confereInt("pegouItem 1 pixel acima da borda",
                pegouItem(itemEm(150, 385, MACA), CESTA), 0);
+    confereInt("pegouItem encostando na lateral esquerda",
+               pegouItem(itemEm(xLateral, yMeio, MACA), CESTA), 1);
+    confereInt("pegouItem a 1 pixel da lateral esquerda",
+               pegouItem(itemEm(xLateral - 1, yMeio, MACA), CESTA), 0);
 }
 
 static void testaAtualizaItens(void) {
